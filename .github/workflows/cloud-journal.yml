@@ -1,3 +1,46 @@
+name: Cloud journal checks
+
+on:
+  push:
+    paths:
+      - 'cloud-journal/**'
+      - '.github/workflows/cloud-journal.yml'
+      - 'render.yaml'
+  pull_request:
+    paths:
+      - 'cloud-journal/**'
+      - '.github/workflows/cloud-journal.yml'
+      - 'render.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloud-journal-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: cloud-journal
+
+jobs:
+  frontend:
+    name: Browser client checks
+    runs-on: ubuntu-24.04
+    container: node:22-bookworm
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check JavaScript syntax
+        run: |
+          node --check src/CraneJournal.Web/wwwroot/app.mjs
+          node --check src/CraneJournal.Web/wwwroot/ui.mjs
+      - name: Run client checks
+        run: node --test checks/ui.test.mjs
+
   server:
     name: ASP.NET Core and PostgreSQL checks
     runs-on: ubuntu-24.04
@@ -23,18 +66,17 @@
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-
-      - name: Install PostgreSQL client
-        run: |
-          apt-get update
-          apt-get install -y --no-install-recommends postgresql-client
-
-      - name: Wait for PostgreSQL and ensure database exists
-        run: |
-          until PGPASSWORD=ci-checks-only psql -h postgres -U checks -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'crane_journal_checks';" | grep -q 1; do
-            echo "Waiting for PostgreSQL database crane_journal_checks..."
-            sleep 1
-          done
-
       - name: Build and run domain, database, and HTTP checks
         run: dotnet run --project checks/CraneJournal.Checks.csproj -c Release -- --integration
+
+  docker:
+    name: Render Docker image build
+    needs: [frontend, server]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build the image used by Render
+        run: docker build --tag crane-journal:check .
