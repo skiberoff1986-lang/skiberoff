@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+.env
+*.log
+*.zip
+*.dump
+**/journal.json*
+**/max-settings.json
+**/Attachments/
+**/attachments/
+.DS_Store
