@@ -1,0 +1,60 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: crane_journal
+      POSTGRES_USER: crane
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-development-only-change-before-use}
+    volumes:
+      - journal-db:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U crane -d crane_journal]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+  web:
+    build:
+      context: .
+      target: runtime
+    ports:
+      - 127.0.0.1:8080:8080
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      DATABASE_URL: Host=db;Database=crane_journal;Username=crane;Password=${POSTGRES_PASSWORD:-local-development-only-change-before-use};SSL Mode=Disable
+      BOOTSTRAP_LOGIN: ${BOOTSTRAP_LOGIN:-admin}
+      BOOTSTRAP_PASSWORD: ${BOOTSTRAP_PASSWORD:-}
+      BUSINESS_TIMEZONE: ${BUSINESS_TIMEZONE:-Europe/Moscow}
+      MEDIA_QUOTA_BYTES: ${MEDIA_QUOTA_BYTES:-500000000}
+      MAX_BOT_TOKEN: ${MAX_BOT_TOKEN:-}
+      MAX_CHAT_ID: ${MAX_CHAT_ID:-}
+    restart: unless-stopped
+  check-db:
+    image: postgres:17
+    profiles: [checks]
+    environment:
+      POSTGRES_DB: crane_journal_checks
+      POSTGRES_USER: checks
+      POSTGRES_PASSWORD: local-checks-only
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U checks -d crane_journal_checks]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+    tmpfs:
+      - /var/lib/postgresql/data
+  checks:
+    profiles: [checks]
+    build:
+      context: .
+      target: checks
+    depends_on:
+      check-db:
+        condition: service_healthy
+    environment:
+      CHECK_DATABASE_URL: Host=check-db;Database=crane_journal_checks;Username=checks;Password=local-checks-only;SSL Mode=Disable
+volumes:
+  journal-db:

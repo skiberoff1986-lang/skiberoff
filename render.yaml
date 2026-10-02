@@ -1,0 +1,37 @@
+# Демонстрационный запуск: бесплатная БД истекает через 30 дней,
+# веб-сервис засыпает. Для постоянного журнала см. docs/RENDER.md.
+services:
+  - type: web
+    name: crane-journal-web
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./cloud-journal/Dockerfile
+    dockerContext: ./cloud-journal
+    healthCheckPath: /healthz
+    autoDeployTrigger: "off"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: crane-journal-db
+          property: connectionString
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: RENDER_TLS_TERMINATION
+        value: "true"
+      - key: BOOTSTRAP_LOGIN
+        value: admin
+      - key: BOOTSTRAP_PASSWORD
+        generateValue: true
+      - key: BUSINESS_TIMEZONE
+        value: Europe/Moscow
+      - key: MEDIA_QUOTA_BYTES
+        value: "500000000"
+databases:
+  - name: crane-journal-db
+    databaseName: crane_journal
+    user: crane
+    plan: free
+    postgresMajorVersion: "17"
+    region: frankfurt
+    ipAllowList: []

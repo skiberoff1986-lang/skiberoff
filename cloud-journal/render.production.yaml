@@ -1,0 +1,38 @@
+# ПЛАТНАЯ конфигурация для согласования. Применяйте только после выбора
+# тарифов в Render и проверки суммы. Этот файл сам ничего не размещает.
+services:
+  - type: web
+    name: crane-journal-web
+    runtime: docker
+    plan: 0.5c-512mb
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    autoDeployTrigger: "off"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: crane-journal-db
+          property: connectionString
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: RENDER_TLS_TERMINATION
+        value: "true"
+      - key: BOOTSTRAP_LOGIN
+        value: admin
+      - key: BOOTSTRAP_PASSWORD
+        generateValue: true
+      - key: BUSINESS_TIMEZONE
+        value: Europe/Moscow
+      - key: MEDIA_QUOTA_BYTES
+        value: "5000000000"
+databases:
+  - name: crane-journal-db
+    databaseName: crane_journal
+    user: crane
+    plan: 0.5c-1g
+    diskSizeGB: 15
+    postgresMajorVersion: "17"
+    region: frankfurt
+    ipAllowList: []

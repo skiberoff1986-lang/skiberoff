@@ -1,0 +1,19 @@
+Frontend checks, 2026-10-01, Node v24.19.0
+✔ duration retains days and local timestamps do not shift by the phone timezone (1.091199ms)
+✔ user text is escaped before HTML insertion (0.258789ms)
+✔ shops retain leading zeros and letters (0.808946ms)
+✔ workflow offers only the next stage (0.26597ms)
+✔ import preserves SDU and excludes settings, old outbox and arbitrary record fields (0.628174ms)
+✔ import rejects duplicate IDs, missing records and unsafe attachment paths (0.805901ms)
+✔ old journals without attachments remain importable (0.203976ms)
+✔ lost response retains the same command; resubmitting cannot create a new one (8.579313ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 125.650548
+
+C# build / PostgreSQL / HTTP checks: NOT EXECUTED in preparation environment. See VERIFICATION.md.
