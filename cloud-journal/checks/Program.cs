@@ -8,6 +8,8 @@ using EquipmentDowntime.Core;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -101,7 +103,14 @@ internal static class Program
         services.AddScoped<AccessService>(); services.AddScoped<ImportService>();
         // No hosted worker is registered: tests never contact MAX or send messages.
         await using var provider = services.BuildServiceProvider();
-        using (var scope = provider.CreateScope()) await scope.ServiceProvider.GetRequiredService<AppDb>().Database.EnsureDeletedAsync();
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDb>();
+            await db.Database.EnsureDeletedAsync();
+            // Bootstrap connects before creating its schema to acquire the startup lock.
+            // Recreate only the empty, disposable database; Bootstrap must create the tables.
+            await db.GetService<IRelationalDatabaseCreator>().CreateAsync();
+        }
         await Bootstrap.Initialize(provider, config);
         await Bootstrap.Initialize(provider, config); // repeat startup must not replace schema or admin
         Actor actor, second, other, viewer, admin;
